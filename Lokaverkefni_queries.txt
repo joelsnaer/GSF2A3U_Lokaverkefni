@@ -1,0 +1,162 @@
+3)
+select movie_title,movie_year,movie_cost 
+from movie
+where movie_title Like "%hope%"
+order by movie_title;
+
+4)
+select movie_title,movie_year,movie_genre 
+from movie
+where movie_genre = "ACTION"
+
+5)
+select movie_num,movie_title,movie_cost
+from movie
+where movie_cost > 40;
+
+6)	
+SELECT movie_num, movie_title, movie_cost, movie_genre
+FROM movie
+WHERE (movie_genre = 'ACTION' OR movie_genre = 'COMEDY') AND movie_cost < 50 
+ORDER BY movie_genre;
+
+7)
+SELECT movie_num, CONCAT(movie_title, " (", movie_year, ") ", movie_genre) AS movie_description
+FROM movie
+
+8)
+SELECT movie_genre, COUNT(*) AS "Number of Movies" 
+FROM movie
+GROUP BY movie_genre
+
+9)
+SELECT ROUND(AVG(movie_cost),4) AS "Average Movie Cost" 
+FROM movie
+
+10)
+SELECT movie_genre, ROUND(AVG(MOVIE_COST),2) AS "Average Cost" 
+FROM movie 
+GROUP BY movie_genre
+
+11)
+SELECT movie_title, movie_genre, price_description,price_rentfee
+FROM price
+NATURAL JOIN movie
+
+12)
+SELECT movie_genre, ROUND(AVG(price_rentfee),2) AS "Average Rental Fee"
+FROM movie
+NATURAL JOIN price
+GROUP BY movie_genre
+
+13)
+SELECT movie_title,movie_year,ROUND((movie_cost / price_rentfee),2)
+FROM movie
+NATURAL JOIN price
+
+14)
+SELECT movie_title, movie_year
+FROM movie
+WHERE price_code IS NOT NULL
+
+15)
+SELECT movie_title, movie_year, movie_cost
+FROM movie
+WHERE movie_cost BETWEEN 44.99 AND 49.99
+
+16)
+SELECT movie.movie_title, movie.movie_year, price.price_description, price.price_rentfee, movie.movie_genre
+FROM price
+JOIN movie ON price.price_code = movie.price_code
+WHERE movie.movie_genre = "family" OR movie.movie_genre = "comedy" or movie.movie_genre = "drama"
+
+17)
+SELECT MIN(mem_balance) AS "Minimum Balance", MAX(mem_balance) AS "Maximum Balance", ROUND(AVG(mem_balance),2) AS "Average Balance"
+from membership
+
+18)
+SELECT concat(mem_fname, " ", mem_lname) AS "Membership Name", CONCAT(mem_street, ", ", mem_city, ", ", mem_state, " ", mem_zip) AS "Membership Address"
+FROM membership
+
+19) 
+SELECT rental.rent_num, DATE_FORMAT(rental.rent_date,'%d-%b-%y') AS Rent_Date, video.vid_num, movie.movie_title, DATE_FORMAT(detailrental.detail_duedate, '%d-%b-%y') AS detail_duedate,
+       DATE_FORMAT(detailrental.detail_returndate, '%d-%b-%y') AS detail_returndate
+FROM rental
+JOIN detailrental ON rental.rent_num = detailrental.rent_num
+JOIN video ON detailrental.vid_num = video.vid_num
+JOIN movie ON video.movie_num = movie.movie_num
+WHERE DATEDIFF(detailrental.detail_returndate, detailrental.detail_duedate) > 0 
+ORDER BY rental.rent_num, movie.movie_title
+
+20)
+SELECT rental.rent_num, DATE_FORMAT(rental.rent_date,'%d-%b-%y') AS Rent_Date, video.vid_num, movie.movie_title, DATE_FORMAT(detailrental.detail_duedate, '%d-%b-%y') AS detail_duedate, 
+       DATE_FORMAT(detailrental.detail_returndate, '%d-%b-%y') AS detail_returndate, DATEDIFF(detailrental.detail_returndate, detailrental.detail_duedate) AS "Days Past Due"
+FROM rental
+JOIN detailrental ON rental.rent_num = detailrental.rent_num
+JOIN video ON detailrental.vid_num = video.vid_num
+JOIN movie ON video.movie_num = movie.movie_num
+WHERE DATEDIFF(detailrental.detail_returndate, detailrental.detail_duedate) > 0 
+ORDER BY rental.rent_num, movie.movie_title
+
+21)
+SELECT rental.rent_num, DATE_FORMAT(rental.rent_date,'%d-%b-%y' ) AS rent_date, movie.movie_title, detailrental.detail_fee
+FROM rental
+JOIN detailrental ON rental.rent_num = detailrental.rent_num
+JOIN video ON detailrental.vid_num = video.vid_num
+JOIN movie ON video.movie_num = movie.movie_num
+WHERE DATEDIFF(detailrental.detail_duedate, detailrental.detail_returndate) >= 0 
+
+22)
+SELECT membership.mem_num, membership.mem_lname, membership.mem_fname, SUM(detailrental.detail_fee) AS "Rental Fee Revenue"
+FROM membership
+JOIN rental ON membership.mem_num = rental.mem_num
+JOIN detailrental ON rental.rent_num = detailrental.rent_num
+GROUP BY rental.mem_num
+ORDER BY membership.mem_num
+
+23) 
+SELECT movie_num, movie_genre AS movieGenre, ROUND((SELECT AVG(movie_cost) FROM movie WHERE movie_genre = movieGenre),2) AS averageCost,
+       movie_cost, 
+       ROUND(((movie_cost - ROUND((SELECT AVG(movie_cost) FROM movie WHERE movie_genre = movieGenre),2)) / ROUND((SELECT AVG(movie_cost) FROM movie WHERE movie_genre = movieGenre),2) * 100) ,2) as "Percent Difference"
+FROM movie
+GROUP BY movie_num
+
+24)
+ALTER TABLE detailrental ADD detail_dayslate INT(3)
+
+25)
+ALTER TABLE video ADD vid_Status CHAR(4) NOT NULL DEFAULT "IN" CHECK(vid_Status IN ("IN","OUT", "LOST"))
+
+26)
+UPDATE video SET vid_status = 'OUT' WHERE vid_num IN (SELECT vid_num FROM detailrental WHERE detail_returndate IS NULL)
+
+27)
+ALTER TABLE price
+ADD price_rentdays int(2) NOT NULL DEFAULT 3
+
+28)
+UPDATE price
+SET price_rentdays = 5
+WHERE price_code = 1
+
+UPDATE price
+SET price_rentdays = 5
+WHERE price_code = 3
+
+UPDATE price
+SET price_rentdays = 7
+WHERE price_code = 5
+
+29)
+CREATE OR REPLACE TRIGGER trg_late_return BEFORE UPDATE 
+ON DETAILRENTAL
+FOR EACH ROW
+BEGIN
+	IF (NEW.detail_returndate IS NULL) THEN 
+		SET NEW.detail_dayslate := NULL;
+	ELSEIF (NEW.detail_returndate - NEW.detail_duedate > 0) THEN
+		SET NEW.detail_dayslate := NEW.detail_returndate - NEW.detail_duedate;
+	ELSE
+		SET NEW.detail_dayslate := 0;
+    END IF;
+END//
