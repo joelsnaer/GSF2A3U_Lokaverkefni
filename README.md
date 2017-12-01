@@ -2,3 +2,4 @@
 
 GSF Lokaverkefni hjá Jóel, Mikael og Sigstein. 
 
+Diary is in Github wiki
